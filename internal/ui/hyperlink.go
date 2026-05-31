@@ -33,7 +33,7 @@ func Hyperlink(text, url string) string {
 
 	// Fallback: render URL as visible text so the terminal's native URL scanner
 	// (e.g. Terminal.app right-click → "Open URL") can detect and open it.
-	return text + "  " + url
+	return text + "  [" + url + "]"
 }
 
 // HyperlinkWithFallback creates a hyperlink with a visible fallback indicator.
@@ -80,9 +80,9 @@ func CreateGoalLinkDisplay(goalText, replayURL string) string {
 	// Fallback: render URL as visible text so the terminal's native URL scanner
 	// can detect and offer right-click → "Open URL".
 	if goalText == "" {
-		return "▶ " + replayURL
+		return "▶ [" + replayURL + "]"
 	}
-	return goalText + " ▶ " + replayURL
+	return goalText + " ▶ [" + replayURL + "]"
 }
 
 // supportsHyperlinks detects if the terminal likely supports OSC 8 hyperlinks.
