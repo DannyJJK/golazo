@@ -74,7 +74,18 @@ var rootCmd = &cobra.Command{
 }
 
 // runUpdate executes the appropriate update method based on installation detection.
+// It first checks whether the running binary is already on the latest release (or
+// is a dev build) and short-circuits with an informative message in that case.
 func runUpdate() {
+	latest, fetchErr := data.CheckLatestVersion()
+	proceed, message := decideUpdate(Version, latest, fetchErr)
+	if message != "" {
+		fmt.Println(message)
+	}
+	if !proceed {
+		return
+	}
+
 	installMethod := detectInstallationMethod()
 
 	switch installMethod {
@@ -95,6 +106,30 @@ func runUpdate() {
 			os.Exit(1)
 		}
 	}
+}
+
+// decideUpdate returns whether runUpdate should shell out to the installer, plus
+// a user-facing message to print first. It is pure (no I/O) so the policy is unit
+// testable without invoking brew or the install script.
+//
+// Policy:
+//   - Dev builds short-circuit (cannot meaningfully self-update).
+//   - On fetch failure we proceed: the user explicitly asked to update, so a
+//     network flake shouldn't block them — fall back to today's behavior.
+//   - If the current version is not older than latest (equal, or local ahead of
+//     the published release), short-circuit with an informative message.
+//   - Otherwise proceed.
+func decideUpdate(current, latest string, fetchErr error) (proceed bool, message string) {
+	if current == "dev" {
+		return false, "Running a dev build; skipping update."
+	}
+	if fetchErr != nil || latest == "" {
+		return true, ""
+	}
+	if version.IsOlder(current, latest) {
+		return true, ""
+	}
+	return false, fmt.Sprintf("Already on the latest version (%s).", current)
 }
 
 // runBrewUpdate attempts to update golazo via Homebrew.
