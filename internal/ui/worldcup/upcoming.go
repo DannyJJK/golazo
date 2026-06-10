@@ -83,8 +83,8 @@ func renderWCUpcomingMatches(matches []api.Match) string {
 		}
 
 		timeStr := timeStyle.Render(local.Format("15:04"))
-		home := teamStyle.Render(wcShortName(m.HomeTeam))
-		away := teamStyle.Render(wcShortName(m.AwayTeam))
+		home := teamStyle.Render(wcUpcomingTeamLabel(m.HomeTeam))
+		away := teamStyle.Render(wcUpcomingTeamLabel(m.AwayTeam))
 		line := fmt.Sprintf("  %s  %s %s %s", timeStr, home, vsStyle.Render("vs"), away)
 
 		if m.Round != "" {
@@ -103,6 +103,17 @@ func wcShortName(t api.Team) string {
 		return t.ShortName
 	}
 	return t.Name
+}
+
+// wcUpcomingTeamLabel prefixes the team's short name with its flag emoji when
+// one is available, producing e.g. "🇦🇷 ARG". Teams without a flag mapping
+// fall back to the short name alone so the layout stays consistent.
+func wcUpcomingTeamLabel(t api.Team) string {
+	name := wcShortName(t)
+	if emoji := FlagEmoji(t.ShortName); emoji != "" {
+		return emoji + " " + name
+	}
+	return name
 }
 
 // upcomingFormatDateHeader is exposed for tests to assert the date header

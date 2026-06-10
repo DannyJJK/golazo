@@ -121,3 +121,49 @@ func TestRenderUpcoming_Error(t *testing.T) {
 		t.Errorf("expected error text in output, got:\n%s", out)
 	}
 }
+
+func TestRenderUpcoming_PrefixesTeamNamesWithFlagEmoji(t *testing.T) {
+	kickoff := time.Date(2026, 6, 14, 18, 0, 0, 0, time.Local)
+	matches := []api.Match{
+		{
+			ID:        1,
+			HomeTeam:  api.Team{Name: "Argentina", ShortName: "ARG"},
+			AwayTeam:  api.Team{Name: "France", ShortName: "FRA"},
+			MatchTime: &kickoff,
+		},
+	}
+
+	out := RenderUpcoming(120, 24, matches, false, "", "")
+
+	argFlag := FlagEmoji("ARG")
+	fraFlag := FlagEmoji("FRA")
+	if argFlag == "" || fraFlag == "" {
+		t.Fatalf("expected ARG/FRA to have flag emojis registered")
+	}
+
+	if !strings.Contains(out, argFlag+" ARG") {
+		t.Errorf("expected home team to be prefixed with flag emoji (e.g. %q ARG), got:\n%s", argFlag, out)
+	}
+	if !strings.Contains(out, fraFlag+" FRA") {
+		t.Errorf("expected away team to be prefixed with flag emoji (e.g. %q FRA), got:\n%s", fraFlag, out)
+	}
+}
+
+func TestRenderUpcoming_FallsBackWhenFlagMissing(t *testing.T) {
+	// A made-up short code with no flag mapping; output must contain the
+	// short code without an "<emoji> " prefix.
+	kickoff := time.Date(2026, 6, 14, 18, 0, 0, 0, time.Local)
+	matches := []api.Match{
+		{
+			ID:        1,
+			HomeTeam:  api.Team{Name: "Nowhereland", ShortName: "ZZZ"},
+			AwayTeam:  api.Team{Name: "Otherland", ShortName: "QQQ"},
+			MatchTime: &kickoff,
+		},
+	}
+
+	out := RenderUpcoming(120, 24, matches, false, "", "")
+	if !strings.Contains(out, "ZZZ") || !strings.Contains(out, "QQQ") {
+		t.Errorf("expected short codes to still render when no flag, got:\n%s", out)
+	}
+}
