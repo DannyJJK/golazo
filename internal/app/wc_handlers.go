@@ -27,14 +27,19 @@ func (m model) handleWorldCupKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleWCGroupsKeys handles input on the groups list.
-// Enter navigates to group detail; b opens the bracket; g opens the grid.
+// handleWCGroupsKeys handles input on the groups list sub-view.
+// Enter navigates to group detail; b opens the bracket; u opens upcoming;
+// Esc returns to the grid (the home sub-view).
 func (m model) handleWCGroupsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.wcData == nil {
 		return m, nil
 	}
 
 	switch msg.String() {
+	case "esc":
+		m.wcSubView = wcSubViewGroupGrid
+		return m, nil
+
 	case "enter":
 		if item, ok := m.wcGroupsList.SelectedItem().(ui.WCGroupItem); ok {
 			for i, g := range m.wcData.Groups {
@@ -54,11 +59,6 @@ func (m model) handleWCGroupsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "g":
-		m.wcGridSelectedIdx = 0
-		m.wcSubView = wcSubViewGroupGrid
-		return m, nil
-
 	case "u":
 		m.wcSubView = wcSubViewUpcoming
 		m.wcUpcomingLoading = true
@@ -76,7 +76,7 @@ func (m model) handleWCGroupsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) handleWCGroupDetailKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
-		m.wcSubView = wcSubViewGroups
+		m.wcSubView = wcSubViewGroupGrid
 	}
 	return m, nil
 }
@@ -85,7 +85,12 @@ func (m model) handleWCGroupDetailKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) handleWCBracketKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
-		m.wcSubView = wcSubViewGroups
+		m.wcSubView = wcSubViewGroupGrid
+	case "u":
+		m.wcSubView = wcSubViewUpcoming
+		m.wcUpcomingLoading = true
+		m.wcUpcomingLastError = ""
+		return m, fetchWorldCupUpcoming(m.loadCtx, m.fotmobClient)
 	case "j", "down":
 		if m.wcBracketLines > 0 && m.wcBracketScroll < m.wcBracketLines-1 {
 			m.wcBracketScroll++
@@ -98,16 +103,16 @@ func (m model) handleWCBracketKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleWCGroupGridKeys handles input on the all-groups grid view.
+// handleWCGroupGridKeys handles input on the all-groups grid view, which is
+// the home sub-view of the World Cup view. Esc on the grid is absorbed by
+// the outer update flow (resets to the main menu); L opens the scrollable
+// groups list.
 func (m model) handleWCGroupGridKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.wcData == nil {
 		return m, nil
 	}
 	n := len(m.wcData.Groups)
 	if n == 0 {
-		if msg.String() == "esc" {
-			m.wcSubView = wcSubViewGroups
-		}
 		return m, nil
 	}
 
@@ -120,12 +125,12 @@ func (m model) handleWCGroupGridKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
-	case "esc":
-		m.wcSubView = wcSubViewGroups
-
 	case "enter":
 		m.wcSelectedGroup = m.wcGridSelectedIdx
 		m.wcSubView = wcSubViewGroupDetail
+
+	case "L":
+		m.wcSubView = wcSubViewGroups
 
 	case "b":
 		if len(m.wcData.KnockoutRounds) > 0 {
@@ -182,11 +187,11 @@ func (m model) handleWCData(msg wcDataMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleWCUpcomingKeys handles input on the upcoming-matches sub-view.
-// Only Esc is meaningful — it returns to the groups list.
+// Only Esc is meaningful — it returns to the grid (home sub-view).
 func (m model) handleWCUpcomingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
-		m.wcSubView = wcSubViewGroups
+		m.wcSubView = wcSubViewGroupGrid
 	}
 	return m, nil
 }

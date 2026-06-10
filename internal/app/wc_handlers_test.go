@@ -14,17 +14,17 @@ import (
 func newWCTestModel() model {
 	return model{
 		loadCtx:   context.Background(),
-		wcSubView: wcSubViewGroups,
+		wcSubView: wcSubViewGroupGrid,
 		wcData: &api.WorldCupData{
 			Groups: []api.WCGroup{{Letter: "A"}, {Letter: "B"}},
 		},
 	}
 }
 
-func TestHandleWCGroupsKeys_UTransitionsToUpcoming(t *testing.T) {
+func TestHandleWCGroupGridKeys_UTransitionsToUpcoming(t *testing.T) {
 	m := newWCTestModel()
 
-	next, cmd := m.handleWCGroupsKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
+	next, cmd := m.handleWCGroupGridKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
 
 	nm := next.(model)
 	if nm.wcSubView != wcSubViewUpcoming {
@@ -38,15 +38,38 @@ func TestHandleWCGroupsKeys_UTransitionsToUpcoming(t *testing.T) {
 	}
 }
 
-func TestHandleWCUpcomingKeys_EscReturnsToGroups(t *testing.T) {
+func TestHandleWCGroupGridKeys_LTransitionsToGroupsList(t *testing.T) {
+	m := newWCTestModel()
+
+	next, _ := m.handleWCGroupGridKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'L'}})
+
+	nm := next.(model)
+	if nm.wcSubView != wcSubViewGroups {
+		t.Errorf("wcSubView = %v, want wcSubViewGroups", nm.wcSubView)
+	}
+}
+
+func TestHandleWCGroupsKeys_EscReturnsToGrid(t *testing.T) {
+	m := newWCTestModel()
+	m.wcSubView = wcSubViewGroups
+
+	next, _ := m.handleWCGroupsKeys(tea.KeyMsg{Type: tea.KeyEsc})
+
+	nm := next.(model)
+	if nm.wcSubView != wcSubViewGroupGrid {
+		t.Errorf("wcSubView = %v, want wcSubViewGroupGrid", nm.wcSubView)
+	}
+}
+
+func TestHandleWCUpcomingKeys_EscReturnsToGrid(t *testing.T) {
 	m := newWCTestModel()
 	m.wcSubView = wcSubViewUpcoming
 
 	next, _ := m.handleWCUpcomingKeys(tea.KeyMsg{Type: tea.KeyEsc})
 
 	nm := next.(model)
-	if nm.wcSubView != wcSubViewGroups {
-		t.Errorf("wcSubView = %v, want wcSubViewGroups", nm.wcSubView)
+	if nm.wcSubView != wcSubViewGroupGrid {
+		t.Errorf("wcSubView = %v, want wcSubViewGroupGrid", nm.wcSubView)
 	}
 }
 

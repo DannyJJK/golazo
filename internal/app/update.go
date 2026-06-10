@@ -347,8 +347,9 @@ func (m model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			break
 		}
 
-		// In World Cup sub-views, let the view handle esc for internal navigation
-		if m.currentView == viewWorldCup && m.wcSubView != wcSubViewGroups {
+		// In World Cup sub-views, let the view handle esc for internal navigation.
+		// The grid view is the home sub-view, so Esc from there resets to main.
+		if m.currentView == viewWorldCup && m.wcSubView != wcSubViewGroupGrid {
 			break
 		}
 

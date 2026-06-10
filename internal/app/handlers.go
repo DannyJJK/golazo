@@ -44,7 +44,7 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.loadCtx, m.loadCancel = context.WithCancel(context.Background())
 			m.wcData = nil
 			m.wcLoading = true
-			m.wcSubView = wcSubViewGroups
+			m.wcSubView = wcSubViewGroupGrid
 			m.wcLastError = ""
 			m.currentView = viewWorldCup
 			if m.useMockData {

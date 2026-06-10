@@ -29,7 +29,7 @@ func RenderUpcoming(width, height int, matches []api.Match, loading bool, lastEr
 	}
 
 	header := design.RenderHeader("Upcoming Matches", width-2)
-	help := HelpStyle.Width(width).Render("Esc: back to groups  q: quit")
+	help := HelpStyle.Width(width).Render("Esc: back to grid  q: quit")
 
 	var body string
 	switch {
