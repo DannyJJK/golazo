@@ -190,3 +190,30 @@ func TestMockWorldCupData_BronzeFinal(t *testing.T) {
 		t.Error("BronzeFinal.WinnerID is nil")
 	}
 }
+
+func TestMockWorldCupUpcoming(t *testing.T) {
+	matches := MockWorldCupUpcoming()
+
+	if len(matches) == 0 {
+		t.Fatal("MockWorldCupUpcoming() returned empty slice")
+	}
+
+	for i, m := range matches {
+		if m.MatchTime == nil {
+			t.Errorf("match %d (ID=%d) has nil MatchTime", i, m.ID)
+		}
+		if m.ID == 0 {
+			t.Errorf("match index %d has zero ID", i)
+		}
+		if m.HomeTeam.Name == "" || m.AwayTeam.Name == "" {
+			t.Errorf("match %d (ID=%d) has empty team name", i, m.ID)
+		}
+	}
+
+	// Must be sorted ascending by MatchTime.
+	for i := 1; i < len(matches); i++ {
+		if matches[i].MatchTime.Before(*matches[i-1].MatchTime) {
+			t.Errorf("MockWorldCupUpcoming not sorted ascending at index %d", i)
+		}
+	}
+}

@@ -2,12 +2,19 @@ package app
 
 import (
 	"context"
+	"sort"
+	"sync"
 	"time"
 
+	"github.com/0xjuanma/golazo/internal/api"
 	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/0xjuanma/golazo/internal/fotmob"
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// wcUpcomingDays is the number of forward days (including today) considered
+// when fetching upcoming World Cup matches.
+const wcUpcomingDays = 3
 
 // fetchWorldCupMockData returns the hardcoded Qatar 2022 World Cup data immediately.
 func fetchWorldCupMockData() tea.Cmd {
@@ -33,4 +40,68 @@ func fetchWorldCupData(parentCtx context.Context, client *fotmob.Client) tea.Cmd
 		}
 		return wcDataMsg{data: wcData}
 	}
+}
+
+// fetchWCUpcomingMatches fetches World Cup fixtures for today and the next
+// wcUpcomingDays-1 days from FotMob, in parallel. Each day is requested via the
+// existing per-league fixtures endpoint and only "not started" matches are
+// returned (the upstream filter is already applied for the "fixtures" tab).
+// Returns matches sorted ascending by kickoff time with duplicates removed.
+//
+// Falls back to MockWorldCupUpcoming when client is nil.
+func fetchWCUpcomingMatches(parentCtx context.Context, client *fotmob.Client) ([]api.Match, error) {
+	if client == nil {
+		return data.MockWorldCupUpcoming(), nil
+	}
+
+	ctx, cancel := context.WithTimeout(parentCtx, 20*time.Second)
+	defer cancel()
+
+	today := time.Now()
+
+	var (
+		mu  sync.Mutex
+		all []api.Match
+		wg  sync.WaitGroup
+	)
+
+	for i := 0; i < wcUpcomingDays; i++ {
+		day := today.AddDate(0, 0, i)
+		wg.Add(1)
+		go func(d time.Time) {
+			defer wg.Done()
+			matches, err := client.MatchesForLeagueAndDate(ctx, api.WCFotMobLeagueID, d, "fixtures")
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			all = append(all, matches...)
+			mu.Unlock()
+		}(day)
+	}
+	wg.Wait()
+
+	return sortAndDedupeWCUpcoming(all), nil
+}
+
+// sortAndDedupeWCUpcoming returns the input slice sorted ascending by kickoff
+// time with duplicate match IDs collapsed (first occurrence wins). Matches
+// without a MatchTime are dropped.
+func sortAndDedupeWCUpcoming(matches []api.Match) []api.Match {
+	seen := make(map[int]struct{}, len(matches))
+	out := make([]api.Match, 0, len(matches))
+	for _, m := range matches {
+		if m.MatchTime == nil {
+			continue
+		}
+		if _, ok := seen[m.ID]; ok {
+			continue
+		}
+		seen[m.ID] = struct{}{}
+		out = append(out, m)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].MatchTime.Before(*out[j].MatchTime)
+	})
+	return out
 }

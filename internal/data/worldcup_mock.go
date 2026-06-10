@@ -1,6 +1,10 @@
 package data
 
-import "github.com/0xjuanma/golazo/internal/api"
+import (
+	"time"
+
+	"github.com/0xjuanma/golazo/internal/api"
+)
 
 // MockWorldCupData returns real completed data from the 2022 FIFA World Cup (Qatar).
 // Sourced from FotMob. Used as sample data for development and the --mock flag.
@@ -146,4 +150,70 @@ func mockWC2022Bronze() *api.WCMatchup {
 		AwayTeam: "Morocco", AwayTeamID: 6262, AwayShort: "MAR",
 		HomeScore: intPtr(2), AwayScore: intPtr(1), WinnerID: intPtr(10155),
 	}
+}
+
+// MockWorldCupUpcoming returns a small set of synthetic World Cup fixtures
+// covering the next three days, used by --mock and as a deterministic
+// stand-in when no client is available. Kickoff times are anchored at the
+// start of the current local day so the data stays "current" no matter when
+// the app is run.
+func MockWorldCupUpcoming() []api.Match {
+	wcLeague := api.League{ID: api.WCFotMobLeagueID, Name: "FIFA World Cup"}
+
+	now := time.Now()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	kickoff := func(dayOffset, hour int) *time.Time {
+		t := dayStart.AddDate(0, 0, dayOffset).Add(time.Duration(hour) * time.Hour)
+		return &t
+	}
+
+	fixtures := []api.Match{
+		{
+			ID:        9100001,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 6706, Name: "Argentina", ShortName: "ARG"},
+			AwayTeam:  api.Team{ID: 6723, Name: "France", ShortName: "FRA"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(0, 18),
+			Round:     "Group A",
+		},
+		{
+			ID:        9100002,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 8491, Name: "England", ShortName: "ENG"},
+			AwayTeam:  api.Team{ID: 6713, Name: "USA", ShortName: "USA"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(0, 21),
+			Round:     "Group B",
+		},
+		{
+			ID:        9100003,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 6708, Name: "Netherlands", ShortName: "NED"},
+			AwayTeam:  api.Team{ID: 10155, Name: "Croatia", ShortName: "CRO"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(1, 17),
+			Round:     "Group C",
+		},
+		{
+			ID:        9100004,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 6262, Name: "Morocco", ShortName: "MAR"},
+			AwayTeam:  api.Team{ID: 6715, Name: "Japan", ShortName: "JPN"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(1, 20),
+			Round:     "Group D",
+		},
+		{
+			ID:        9100005,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 6395, Name: "Senegal", ShortName: "SEN"},
+			AwayTeam:  api.Team{ID: 6716, Name: "Australia", ShortName: "AUS"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(2, 19),
+			Round:     "Group E",
+		},
+	}
+	return fixtures
 }
