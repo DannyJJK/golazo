@@ -38,7 +38,7 @@ func RenderUpcoming(width, height int, matches []api.Match, loading bool, lastEr
 	case lastErr != "":
 		body = ErrorStyle.Render(lastErr)
 	case len(matches) == 0:
-		body = lipgloss.NewStyle().Foreground(colorDim).Render("No matches in the next 3 days")
+		body = lipgloss.NewStyle().Foreground(colorDim).Render("No matches in the next 4 days")
 	default:
 		body = renderWCUpcomingMatches(matches)
 	}

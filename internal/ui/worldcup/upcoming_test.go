@@ -103,7 +103,7 @@ func TestRenderUpcoming_SameDayMultipleMatches(t *testing.T) {
 
 func TestRenderUpcoming_EmptyState(t *testing.T) {
 	out := RenderUpcoming(80, 24, nil, false, "", "")
-	if !strings.Contains(out, "No matches in the next 3 days") {
+	if !strings.Contains(out, "No matches in the next 4 days") {
 		t.Errorf("expected empty-state message, got:\n%s", out)
 	}
 }

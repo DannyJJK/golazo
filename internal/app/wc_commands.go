@@ -14,7 +14,7 @@ import (
 
 // wcUpcomingDays is the number of forward days (including today) considered
 // when fetching upcoming World Cup matches.
-const wcUpcomingDays = 3
+const wcUpcomingDays = 4
 
 // fetchWorldCupMockData returns the hardcoded Qatar 2022 World Cup data immediately.
 func fetchWorldCupMockData() tea.Cmd {

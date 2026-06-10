@@ -153,7 +153,7 @@ func mockWC2022Bronze() *api.WCMatchup {
 }
 
 // MockWorldCupUpcoming returns a small set of synthetic World Cup fixtures
-// covering the next three days, used by --mock and as a deterministic
+// covering the next four days, used by --mock and as a deterministic
 // stand-in when no client is available. Kickoff times are anchored at the
 // start of the current local day so the data stays "current" no matter when
 // the app is run.
@@ -213,6 +213,24 @@ func MockWorldCupUpcoming() []api.Match {
 			Status:    api.MatchStatusNotStarted,
 			MatchTime: kickoff(2, 19),
 			Round:     "Group E",
+		},
+		{
+			ID:        9100006,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 6707, Name: "Ecuador", ShortName: "ECU"},
+			AwayTeam:  api.Team{ID: 5902, Name: "Qatar", ShortName: "QAT"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(3, 16),
+			Round:     "Group A",
+		},
+		{
+			ID:        9100007,
+			League:    wcLeague,
+			HomeTeam:  api.Team{ID: 5790, Name: "Wales", ShortName: "WAL"},
+			AwayTeam:  api.Team{ID: 6711, Name: "Iran", ShortName: "IRN"},
+			Status:    api.MatchStatusNotStarted,
+			MatchTime: kickoff(3, 19),
+			Round:     "Group B",
 		},
 	}
 	return fixtures
