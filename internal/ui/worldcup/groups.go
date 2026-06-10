@@ -109,7 +109,7 @@ func RenderGroupsList(width, height int, wcData *api.WorldCupData, groupsList li
 		phaseHint = lipgloss.NewStyle().Foreground(colorGold).Render("  " + phase)
 	}
 
-	help := HelpStyle.Width(width).Render("↑/↓: navigate  Enter: detail  b: bracket  g: grid  /: filter  Esc: back  q: quit")
+	help := HelpStyle.Width(width).Render("↑/↓: navigate  Enter: detail  b: bracket  g: grid  u: upcoming  /: filter  Esc: back  q: quit")
 
 	overhead := 4
 	if statusBanner != "" {
@@ -288,7 +288,7 @@ func RenderGroupGrid(width, height int, wcData *api.WorldCupData, selectedGroupI
 	}
 
 	header := design.RenderHeader(wcData.Name+" — Groups Overview", width-2)
-	help := HelpStyle.Width(width).Render("↑/↓/←/→: navigate  Enter: detail  Esc: back  b: bracket  q: quit")
+	help := HelpStyle.Width(width).Render("↑/↓/←/→: navigate  Enter: detail  b: bracket  u: upcoming  Esc: back  q: quit")
 
 	cols := 2
 	if width > 120 {
