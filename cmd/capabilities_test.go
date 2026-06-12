@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"testing"
+
+	"github.com/spf13/pflag"
 )
 
 func TestRunCapabilities_EmitsContract(t *testing.T) {
@@ -79,6 +81,47 @@ func TestCapabilities_EveryCommandHasExample(t *testing.T) {
 		}
 		if cmd.Description == "" {
 			t.Errorf("command %q has empty description", cmd.Name)
+		}
+	}
+}
+
+// TestCapabilities_FlagsMatchCobra protects the contract from drifting away
+// from the actual cobra flag set. If you add or remove a flag on a subcommand,
+// you must also update buildCapabilities() to match.
+func TestCapabilities_FlagsMatchCobra(t *testing.T) {
+	caps := buildCapabilities()
+	capsByName := map[string]capabilityCommand{}
+	for _, c := range caps.Commands {
+		capsByName[c.Name] = c
+	}
+
+	for _, cobraCmd := range rootCmd.Commands() {
+		entry, ok := capsByName[cobraCmd.Name()]
+		if !ok {
+			continue // cobra builtins (help, completion) aren't in the contract
+		}
+
+		cobraFlagNames := map[string]bool{}
+		cobraCmd.Flags().VisitAll(func(f *pflag.Flag) {
+			cobraFlagNames[f.Name] = true
+		})
+		// Strip the inherited `help` flag — cobra adds it automatically.
+		delete(cobraFlagNames, "help")
+
+		capsFlagNames := map[string]bool{}
+		for _, f := range entry.Flags {
+			capsFlagNames[f.Name] = true
+		}
+
+		for name := range cobraFlagNames {
+			if !capsFlagNames[name] {
+				t.Errorf("subcommand %q exposes --%s but capabilities contract omits it", cobraCmd.Name(), name)
+			}
+		}
+		for name := range capsFlagNames {
+			if !cobraFlagNames[name] {
+				t.Errorf("capabilities contract claims subcommand %q has --%s but cobra doesn't expose it", cobraCmd.Name(), name)
+			}
 		}
 	}
 }

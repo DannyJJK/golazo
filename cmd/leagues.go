@@ -87,7 +87,7 @@ Example output:
 }
 
 func init() {
-	addCommonCLIFlags(leaguesCmd, &leaguesFlagSet.cliFlags)
+	addPrettyOnlyFlag(leaguesCmd, &leaguesFlagSet.cliFlags)
 	leaguesCmd.Flags().BoolVar(&leaguesFlagSet.all, "all", false, "List every supported league, not just the active selection")
 	rootCmd.AddCommand(leaguesCmd)
 }

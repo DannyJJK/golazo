@@ -51,12 +51,17 @@ func buildCapabilities() capabilities {
 		{Name: "timeout", Type: "duration", Default: "15s", Description: "Overall request timeout"},
 		{Name: "pretty", Type: "bool", Default: false, Description: "Indent JSON output"},
 	}
+	// Read-only subcommands (no network I/O) expose only --pretty so agents
+	// don't see inert flags in the contract.
+	prettyOnly := []capabilityFlag{
+		{Name: "pretty", Type: "bool", Default: false, Description: "Indent JSON output"},
+	}
 	finishedFlagDefs := append([]capabilityFlag{}, commonFlags...)
 	finishedFlagDefs = append(finishedFlagDefs,
 		capabilityFlag{Name: "days", Type: "int", Default: 1, Description: "Number of days to look back (1..7)"},
 		capabilityFlag{Name: "include-upcoming", Type: "bool", Default: false, Description: "Also include today's not-yet-started matches"},
 	)
-	leaguesFlagDefs := append([]capabilityFlag{}, commonFlags...)
+	leaguesFlagDefs := append([]capabilityFlag{}, prettyOnly...)
 	leaguesFlagDefs = append(leaguesFlagDefs,
 		capabilityFlag{Name: "all", Type: "bool", Default: false, Description: "List every supported league, not just the active selection"},
 	)
@@ -99,8 +104,8 @@ func buildCapabilities() capabilities {
 			{
 				Name:        "capabilities",
 				Description: "Print this machine-readable contract describing every subcommand, flag, error and exit code",
-				Flags:       []capabilityFlag{{Name: "pretty", Type: "bool", Default: false, Description: "Indent JSON output"}},
-				Example:     "golazo capabilities | jq .commands",
+				Flags:       prettyOnly,
+				Example:     "golazo capabilities | jq '.data[0].commands'",
 				ExitCodes:   []int{ExitOK},
 			},
 		},
@@ -161,6 +166,6 @@ var capabilitiesCmd = &cobra.Command{
 }
 
 func init() {
-	addCommonCLIFlags(capabilitiesCmd, &capabilitiesFlagSet)
+	addPrettyOnlyFlag(capabilitiesCmd, &capabilitiesFlagSet)
 	rootCmd.AddCommand(capabilitiesCmd)
 }

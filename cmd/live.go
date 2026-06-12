@@ -30,6 +30,13 @@ func addCommonCLIFlags(cmd *cobra.Command, f *cliFlags) {
 	cmd.Flags().BoolVar(&f.pretty, "pretty", false, "Indent JSON output")
 }
 
+// addPrettyOnlyFlag registers only --pretty. Used by subcommands that perform
+// no network I/O (leagues, capabilities), so --mock/--debug/--timeout would be
+// inert and confuse agents reading the capabilities contract.
+func addPrettyOnlyFlag(cmd *cobra.Command, f *cliFlags) {
+	cmd.Flags().BoolVar(&f.pretty, "pretty", false, "Indent JSON output")
+}
+
 // applyPretty syncs the package-level Pretty toggle. Subcommands call this
 // from RunE before emitting output. GOLAZO_AGENT forces compact regardless.
 func applyPretty(f cliFlags) {
