@@ -9,7 +9,7 @@ The default `golazo` invocation still opens the TUI — the subcommands below ar
 | Command | Description |
 |---|---|
 | `golazo live` | Live matches across active leagues |
-| `golazo finished [--days N]` | Finished matches over the last N days (1..7, default 1) |
+| `golazo finished [--days N] [--include-upcoming]` | Finished matches over the last N days (1..7, default 1); use `--include-upcoming` to also include today's not-yet-started matches |
 | `golazo match <id>` | Full match details (events, lineups, stats) |
 | `golazo leagues [--all]` | Active leagues (or every supported league) |
 
@@ -90,6 +90,9 @@ golazo live
 
 # Finished matches over the last 3 days, indented
 golazo finished --days 3 --pretty
+
+# Today's full slate (finished + still-to-come)
+golazo finished --include-upcoming
 
 # Single match details
 golazo match 4506424

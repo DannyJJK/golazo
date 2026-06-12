@@ -71,7 +71,7 @@ func TestCollectFinished_DedupsByID(t *testing.T) {
 		}, nil
 	}
 
-	matches, failed, err := collectFinished(context.Background(), fetch, now, 3)
+	matches, failed, err := collectFinished(context.Background(), fetch, now, 3, false)
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
@@ -104,7 +104,7 @@ func TestCollectFinished_PartialFailureFlagsDegraded(t *testing.T) {
 		}, nil
 	}
 
-	matches, failed, err := collectFinished(context.Background(), fetch, now, 3)
+	matches, failed, err := collectFinished(context.Background(), fetch, now, 3, false)
 	if err != nil {
 		t.Fatalf("partial-success should not return err, got %v", err)
 	}
@@ -122,7 +122,7 @@ func TestCollectFinished_AllFailureReturnsError(t *testing.T) {
 		return nil, errors.New("nope")
 	}
 
-	matches, failed, err := collectFinished(context.Background(), fetch, now, 2)
+	matches, failed, err := collectFinished(context.Background(), fetch, now, 2, false)
 	if err == nil {
 		t.Fatalf("expected err when all days fail")
 	}
@@ -142,7 +142,7 @@ func TestCollectFinished_TodayUsesFixturesAndResults(t *testing.T) {
 		return nil, nil
 	}
 
-	_, _, _ = collectFinished(context.Background(), fetch, now, 2)
+	_, _, _ = collectFinished(context.Background(), fetch, now, 2, false)
 	if len(gotTabs) != 2 {
 		t.Fatalf("expected 2 fetches, got %d", len(gotTabs))
 	}
@@ -169,5 +169,62 @@ func TestRunFinished_TimeoutNotSwallowed(t *testing.T) {
 	}
 	if stdout.Len() != 0 {
 		t.Errorf("stdout should be empty on timeout, got: %s", stdout.String())
+	}
+}
+
+func TestCollectFinished_IncludeUpcomingTodayOnly(t *testing.T) {
+	now := time.Date(2026, 6, 12, 12, 0, 0, 0, time.UTC)
+	fetch := func(ctx context.Context, date time.Time, tabs []string) ([]api.Match, error) {
+		// Same payload returned for every day: one finished, one not_started.
+		return []api.Match{
+			{ID: int(date.Unix()) + 1, Status: api.MatchStatusFinished},
+			{ID: int(date.Unix()) + 2, Status: api.MatchStatusNotStarted},
+		}, nil
+	}
+
+	// includeUpcoming=false → not_started filtered everywhere
+	matches, _, err := collectFinished(context.Background(), fetch, now, 2, false)
+	if err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	for _, m := range matches {
+		if m.Status != api.MatchStatusFinished {
+			t.Errorf("include=false leaked status=%q match=%+v", m.Status, m)
+		}
+	}
+	if len(matches) != 2 {
+		t.Errorf("include=false count = %d, want 2 (finished from each day)", len(matches))
+	}
+
+	// includeUpcoming=true → today's not_started included, past-day not_started still filtered
+	matches, _, err = collectFinished(context.Background(), fetch, now, 2, true)
+	if err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	statusCounts := map[api.MatchStatus]int{}
+	for _, m := range matches {
+		statusCounts[m.Status]++
+	}
+	if statusCounts[api.MatchStatusFinished] != 2 {
+		t.Errorf("finished count = %d, want 2", statusCounts[api.MatchStatusFinished])
+	}
+	if statusCounts[api.MatchStatusNotStarted] != 1 {
+		t.Errorf("not_started count = %d, want 1 (today only)", statusCounts[api.MatchStatusNotStarted])
+	}
+}
+
+func TestRunFinished_IncludeUpcomingFlag(t *testing.T) {
+	t.Setenv(EnvOffline, "")
+	t.Setenv(EnvAgent, "")
+
+	// Mock data is finished-only; the flag should not break mock execution.
+	var stdout, stderr bytes.Buffer
+	code := runFinished(&stdout, &stderr, finishedFlags{
+		cliFlags:        cliFlags{mock: true, timeout: time.Second},
+		days:            1,
+		includeUpcoming: true,
+	})
+	if code != ExitOK {
+		t.Fatalf("exit = %d, stderr=%s", code, stderr.String())
 	}
 }

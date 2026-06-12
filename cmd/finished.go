@@ -27,7 +27,10 @@ type finishedDayFetcher func(ctx context.Context, date time.Time, tabs []string)
 //
 // This is the layer where the multi-day, dedup, and degraded-surface behavior
 // lives, so tests target it directly.
-func collectFinished(ctx context.Context, fetch finishedDayFetcher, now time.Time, days int) ([]api.Match, []string, error) {
+//
+// When includeUpcoming is true, today's not-yet-started matches are also
+// included in the result. Past days never contain not_started matches.
+func collectFinished(ctx context.Context, fetch finishedDayFetcher, now time.Time, days int, includeUpcoming bool) ([]api.Match, []string, error) {
 	dedup := make(map[int]api.Match, days*10)
 	var failedDates []string
 	successCount := 0
@@ -36,10 +39,11 @@ func collectFinished(ctx context.Context, fetch finishedDayFetcher, now time.Tim
 	for i := 0; i < days; i++ {
 		date := now.AddDate(0, 0, -i).UTC()
 		dateStr := date.Format("2006-01-02")
+		isToday := i == 0
 
 		// Today needs fixtures+results (TUI behavior); past days only need results.
 		tabs := []string{"results"}
-		if i == 0 {
+		if isToday {
 			tabs = []string{"fixtures", "results"}
 		}
 
@@ -51,8 +55,13 @@ func collectFinished(ctx context.Context, fetch finishedDayFetcher, now time.Tim
 		}
 		successCount++
 		for _, m := range matches {
-			if m.Status == api.MatchStatusFinished {
+			switch m.Status {
+			case api.MatchStatusFinished:
 				dedup[m.ID] = m
+			case api.MatchStatusNotStarted:
+				if includeUpcoming && isToday {
+					dedup[m.ID] = m
+				}
 			}
 		}
 	}
@@ -72,10 +81,11 @@ func defaultFinishedFetcher(c *fotmob.Client) finishedDayFetcher {
 	return c.MatchesByDateWithTabs
 }
 
-// finishedFlags extends the common flag set with --days.
+// finishedFlags extends the common flag set with --days and --include-upcoming.
 type finishedFlags struct {
 	cliFlags
-	days int
+	days            int
+	includeUpcoming bool
 }
 
 var finishedFlagSet finishedFlags
@@ -111,7 +121,7 @@ func runFinished(stdout, stderr io.Writer, flags finishedFlags) int {
 		// Mock data is single-day; serve it regardless of --days.
 		matches = data.MockFinishedMatches()
 	} else {
-		matches, failedDates, err = collectFinished(ctx, defaultFinishedFetcher(client), time.Now(), flags.days)
+		matches, failedDates, err = collectFinished(ctx, defaultFinishedFetcher(client), time.Now(), flags.days, flags.includeUpcoming)
 		if err != nil {
 			return WriteError(stderr, ClassifyClientError(err, isTimeout(ctx)), err)
 		}
@@ -141,7 +151,7 @@ func runFinished(stdout, stderr io.Writer, flags finishedFlags) int {
 var finishedCmd = &cobra.Command{
 	Use:           "finished",
 	Short:         "List finished matches over a day window as JSON",
-	Long:          "Fetches finished matches for the last --days days (default 1 = today) across active leagues. Partial failures surface as degraded:true with failed_dates listed.",
+	Long:          "Fetches finished matches for the last --days days (default 1 = today) across active leagues. Use --include-upcoming to also include today's not-yet-started matches. Partial failures surface as degraded:true with failed_dates listed.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -155,5 +165,6 @@ var finishedCmd = &cobra.Command{
 func init() {
 	addCommonCLIFlags(finishedCmd, &finishedFlagSet.cliFlags)
 	finishedCmd.Flags().IntVar(&finishedFlagSet.days, "days", 1, "Number of days to look back (1..7)")
+	finishedCmd.Flags().BoolVar(&finishedFlagSet.includeUpcoming, "include-upcoming", false, "Also include today's not-yet-started matches in the result")
 	rootCmd.AddCommand(finishedCmd)
 }
