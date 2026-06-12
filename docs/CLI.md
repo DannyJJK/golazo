@@ -205,6 +205,37 @@ country_code: string   # often empty for international competitions
 | `GOLAZO_AGENT=1` | Forces compact JSON, enables stderr debug logging |
 | `GOLAZO_OFFLINE=1` | Refuses any network call; subcommands return `offline` unless `--mock` is set |
 
+### Recommended agent invocation
+
+For any non-human caller, always set `GOLAZO_AGENT=1`:
+
+```bash
+GOLAZO_AGENT=1 golazo <subcommand> [flags]
+```
+
+This single env var:
+
+- Forces compact (single-line) JSON regardless of `--pretty` — lower token cost
+- Routes all debug logging to stderr so stdout stays clean for `jq` pipelines
+- Acts as a future-proof "I am not a human" signal — if Golazo ever grows interactive prompts or color escapes, this flag will suppress them
+
+A repository-root `tool.json` manifest also describes the CLI for agent indexers; see the top of [the repo](https://github.com/0xjuanma/golazo/blob/main/tool.json).
+
+## Determinism guarantees
+
+Agents that diff outputs across calls (e.g. "did the score change since five minutes ago?") need to know what's stable and what's not. Within a single match:
+
+| Stable across calls | Changes during/after a match |
+|---|---|
+| `id`, `league`, `home_team`, `away_team` | `status` |
+| `match_time` (kickoff time), `venue`, `referee` | `home_score`, `away_score` |
+| `home_formation`, `away_formation` (once published) | `live_time` |
+| Starting lineup IDs (once published) | `events[]` (appends as goals/cards happen) |
+|  | `statistics[]` |
+|  | `home_xg`, `away_xg` |
+
+List endpoints (`live`, `finished`, `leagues`) sort by `match_time` then `id` for deterministic ordering — repeated invocations produce diffable output. `leagues --all` sorts by ID.
+
 ## Examples
 
 ### Basic invocations
