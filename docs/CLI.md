@@ -106,6 +106,8 @@ Errors go to **stderr**, stdout stays empty:
 
 Error codes: `invalid_args`, `not_found`, `upstream_error`, `timeout`, `offline`.
 
+CLI-level failures (typo'd subcommand, unknown flag, bad flag value) also flow through this envelope as `invalid_args` (exit code 2). Agents can always parse stderr as JSON when the exit code is non-zero.
+
 ## Data schema
 
 Every command's `data` array contains one of three object shapes. All field names are stable across calls. Fields marked `null when ...` are present but null in those states — agents should always nil-check.
