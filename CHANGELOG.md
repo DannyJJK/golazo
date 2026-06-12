@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **World Cup Flags** - Fixed ambiguous FotMob short codes (e.g. South Africa/South Korea both `SOU`) and missing 2026 qualifier flags causing teams to render with the wrong code or no flag.
 
 ## [0.26.0] - 2026-06-10
 

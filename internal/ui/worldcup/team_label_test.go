@@ -11,8 +11,10 @@ func TestTeamLabel(t *testing.T) {
 	argFlag := FlagEmoji("ARG")
 	nedFlag := FlagEmoji("NED")
 	ausFlag := FlagEmoji("AUS")
-	if argFlag == "" || nedFlag == "" || ausFlag == "" {
-		t.Fatal("expected ARG/NED/AUS to have flag emojis registered")
+	korFlag := FlagEmoji("KOR")
+	rsaFlag := FlagEmoji("RSA")
+	if argFlag == "" || nedFlag == "" || ausFlag == "" || korFlag == "" || rsaFlag == "" {
+		t.Fatal("expected ARG/NED/AUS/KOR/RSA to have flag emojis registered")
 	}
 
 	tests := []struct {
@@ -59,6 +61,16 @@ func TestTeamLabel(t *testing.T) {
 			name: "short name longer than 3 chars is truncated",
 			team: api.Team{Name: "Australia", ShortName: "AUST"},
 			want: ausFlag + " AUS", // "AUST" → "AUS" → flag resolves
+		},
+		{
+			name: "ambiguous shortname without flag falls back to name override (KOR)",
+			team: api.Team{Name: "South Korea", ShortName: "SOU"},
+			want: korFlag + " KOR",
+		},
+		{
+			name: "ambiguous shortname without flag falls back to name override (RSA)",
+			team: api.Team{Name: "South Africa", ShortName: "SOU"},
+			want: rsaFlag + " RSA",
 		},
 	}
 
@@ -114,5 +126,46 @@ func TestTeamLabel_AlwaysContainsCode(t *testing.T) {
 		if !strings.Contains(label, code) {
 			t.Errorf("TeamLabel(%+v) = %q must contain code %q", c, label, code)
 		}
+	}
+}
+
+// TestTeamLabel_WC2026Qualifiers asserts a representative sample of teams
+// added for the WC 2026 qualifying cycle resolves to "<flag> <CODE>". This
+// guards against either the flagEmojis or wcNameToCode entries being
+// silently removed.
+func TestTeamLabel_WC2026Qualifiers(t *testing.T) {
+	cases := []struct {
+		name string
+		code string
+	}{
+		{"Uzbekistan", "UZB"},
+		{"Cape Verde", "CPV"},
+		{"Curaçao", "CUW"},
+		{"Curacao", "CUW"},
+		{"Haiti", "HAI"},
+		{"Suriname", "SUR"},
+		{"New Caledonia", "NCL"},
+		{"Dominican Republic", "DOM"},
+		{"Guatemala", "GUA"},
+		{"El Salvador", "SLV"},
+		{"North Korea", "PRK"},
+		{"Burkina Faso", "BFA"},
+		{"Madagascar", "MAD"},
+		{"Kazakhstan", "KAZ"},
+		{"Luxembourg", "LUX"},
+		{"Israel", "ISR"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			flag := FlagEmoji(tc.code)
+			if flag == "" {
+				t.Fatalf("missing flagEmojis entry for %s (%s)", tc.name, tc.code)
+			}
+			got := TeamLabel(api.Team{Name: tc.name})
+			want := flag + " " + tc.code
+			if got != want {
+				t.Errorf("TeamLabel({Name:%q}) = %q, want %q", tc.name, got, want)
+			}
+		})
 	}
 }
