@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Agentic CLI Mode** - Golazo is now usable by agentic dev tools (Claude Code, Codex, etc). Adds JSON subcommands (`live`, `finished`, `match`, `leagues`, `capabilities`) with a stable envelope, typed error codes and self-describing contract. TUI behavior is unchanged. See [docs/CLI.md](docs/CLI.md).
+- **World Cup 2026 Flag Coverage** - Added flag emojis and name-to-code overrides for confirmed and likely 2026 qualifiers (Uzbekistan, Cape Verde, Curaçao, Haiti, Suriname, North Korea, Guatemala, etc.) plus broader confederation tail coverage for FotMob's qualifying-round payloads.
 
 ### Changed
 
