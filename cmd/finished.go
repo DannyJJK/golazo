@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -113,6 +114,13 @@ func runFinished(stdout, stderr io.Writer, flags finishedFlags) int {
 		matches, failedDates, err = collectFinished(ctx, defaultFinishedFetcher(client), time.Now(), flags.days)
 		if err != nil {
 			return WriteError(stderr, ClassifyClientError(err, isTimeout(ctx)), err)
+		}
+		// Guard against silent timeouts: per-day fetches may all swallow the
+		// cancellation and return empty without an error. Surface as timeout
+		// so agents can distinguish "no finished matches" from "timed out".
+		if isTimeout(ctx) {
+			return WriteError(stderr, ErrCodeTimeout,
+				fmt.Errorf("finished matches fetch timed out after %s", flags.timeout))
 		}
 	}
 

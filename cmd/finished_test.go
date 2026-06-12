@@ -155,3 +155,19 @@ func TestCollectFinished_TodayUsesFixturesAndResults(t *testing.T) {
 		t.Errorf("past-day tabs = %v, want [results]", gotTabs[1])
 	}
 }
+
+func TestRunFinished_TimeoutNotSwallowed(t *testing.T) {
+	t.Setenv(EnvOffline, "")
+	t.Setenv(EnvAgent, "")
+
+	// 1ns timeout — collectFinished may swallow per-day failures and return
+	// no error. The CLI must still report timeout to the agent.
+	var stdout, stderr bytes.Buffer
+	code := runFinished(&stdout, &stderr, finishedFlags{cliFlags: cliFlags{mock: false, timeout: 1}, days: 1})
+	if code != ExitTimeout {
+		t.Errorf("exit = %d, want %d (stderr=%s)", code, ExitTimeout, stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Errorf("stdout should be empty on timeout, got: %s", stdout.String())
+	}
+}

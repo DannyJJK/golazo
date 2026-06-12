@@ -90,3 +90,20 @@ func TestRunLive_AgentModeForcesCompact(t *testing.T) {
 		t.Errorf("agent mode should force compact, got indented: %s", stdout.String())
 	}
 }
+
+func TestRunLive_TimeoutNotSwallowed(t *testing.T) {
+	t.Setenv(EnvOffline, "")
+	t.Setenv(EnvAgent, "")
+
+	// 1ns timeout — the headless client's context is deadline-exceeded
+	// immediately. The underlying LiveMatches aggregator may return an
+	// empty slice with nil error; the CLI must still report timeout.
+	var stdout, stderr bytes.Buffer
+	code := runLive(&stdout, &stderr, cliFlags{mock: false, timeout: 1})
+	if code != ExitTimeout {
+		t.Errorf("exit = %d, want %d (stderr=%s, stdout=%s)", code, ExitTimeout, stderr.String(), stdout.String())
+	}
+	if stdout.Len() != 0 {
+		t.Errorf("stdout should be empty on timeout, got: %s", stdout.String())
+	}
+}

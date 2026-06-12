@@ -109,3 +109,22 @@ GOLAZO_AGENT=1 GOLAZO_OFFLINE=1 golazo live --mock
 - Stdout receives **only** the JSON envelope. All logs go to stderr — safe to pipe through `jq`.
 - List output is sorted deterministically (`match_time` then `id`) so repeated invocations diff cleanly.
 - The TUI experience is unchanged — no flags here alter the interactive default.
+
+## Known limitations
+
+### `match <id>` requires IDs from a prior list call
+
+FotMob's match-details endpoint is gated behind Cloudflare Turnstile when called directly. Golazo's primary fetch path retrieves details by parsing the match's page HTML using a slug that is only populated when the match appears in a list response (`live` or `finished`). Calling `golazo match <id>` against an ID that has not previously been seen in the current process will most likely return an `upstream_error` (HTTP 404 from the API fallback).
+
+**Recommended agent flow**: list first, then drill in within the same shell pipeline or session:
+
+```bash
+# Pick an ID from the list, then fetch its details
+golazo finished --days 1 | jq -r '.data[0].id' | xargs golazo match
+```
+
+The slug cache lives in process memory and does not persist across invocations, so a fresh `golazo match <id>` cold call is not reliable. Agents should treat `match` as a follow-up step to `live` / `finished`, not a standalone lookup.
+
+### Debug logging is sparse on list endpoints
+
+`--debug` and `GOLAZO_AGENT=1` only emit logs at the FotMob client's match-details fetch path. The list endpoints (`live`, `finished`, `leagues`) are largely silent. This is by design — agents are expected to interpret the JSON envelope (including `degraded` / `failed_dates`), not stderr logs.

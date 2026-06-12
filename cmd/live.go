@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -73,6 +74,14 @@ func runLive(stdout, stderr io.Writer, flags cliFlags) int {
 		matches, err = defaultLiveFetcher(client)(ctx)
 		if err != nil {
 			return WriteError(stderr, ClassifyClientError(err, isTimeout(ctx)), err)
+		}
+		// Guard against silent timeouts: the underlying client aggregates
+		// per-league fetches and returns nil/empty when all goroutines fail
+		// due to context cancellation. Agents must be able to distinguish
+		// "no live matches" from "timed out".
+		if isTimeout(ctx) {
+			return WriteError(stderr, ErrCodeTimeout,
+				fmt.Errorf("live matches fetch timed out after %s", flags.timeout))
 		}
 	}
 
