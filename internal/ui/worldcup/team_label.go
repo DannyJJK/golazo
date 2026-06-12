@@ -10,12 +10,17 @@ import (
 // "<flag-emoji> <CODE>", where <CODE> is the FIFA 3-letter abbreviation.
 //
 // The code resolution chain is:
-//  1. team.ShortName, if non-empty (already a 3-letter code from FotMob).
+//  1. team.ShortName, if non-empty AND it resolves to a registered flag.
+//     This guards against FotMob shipping a non-FIFA shortName (e.g. "SOU"
+//     for both "South Africa" and "South Korea") that would otherwise mask
+//     the correct FIFA code.
 //  2. A WC-local Name → code override map for known mismatches where FotMob
-//     ships the full English name without a short code (e.g. "Netherlands" → "NED").
-//  3. A deterministic fallback: uppercase the first 3 letters of the name with
-//     spaces stripped (e.g. "Cape Verde" → "CAP"). This is never ideal but
-//     keeps every cell aligned even when we receive an unknown country.
+//     ships the full English name without a populated short code
+//     (e.g. "Netherlands" → "NED") or ships an ambiguous short code.
+//  3. team.ShortName as-is (no flag) when the override map has no match.
+//  4. A deterministic fallback: uppercase the first 3 letters of the name
+//     with spaces stripped (e.g. "Cape Verde" → "CAP"). This is never ideal
+//     but keeps every cell aligned even when we receive an unknown country.
 //
 // When no flag emoji is registered for the resolved code, the emoji slot is
 // padded with two spaces so that columns stay aligned across rows.
@@ -42,12 +47,21 @@ func MatchupTeamLabel(short, full string, tbd bool) string {
 // teamCode resolves a team to its canonical 3-letter code using the chain
 // described on TeamLabel. The returned code is always truncated to at most
 // three characters so every WC view renders teams in the same column width.
+//
+// ShortName is preferred only when it resolves to a registered flag emoji.
+// This guards against FotMob occasionally shipping a non-FIFA shortName
+// (e.g. "SOU" for both "South Africa" and "South Korea") that would
+// otherwise mask the correct FIFA code available in wcNameToCode.
 func teamCode(short, full string) string {
-	if c := strings.ToUpper(strings.TrimSpace(short)); c != "" {
-		return capCode(c)
+	capped := capCode(strings.ToUpper(strings.TrimSpace(short)))
+	if capped != "" && FlagEmoji(capped) != "" {
+		return capped
 	}
 	if c, ok := wcNameToCode[strings.ToLower(strings.TrimSpace(full))]; ok {
 		return capCode(c)
+	}
+	if capped != "" {
+		return capped
 	}
 	stripped := strings.ToUpper(strings.ReplaceAll(full, " ", ""))
 	return capCode(stripped)

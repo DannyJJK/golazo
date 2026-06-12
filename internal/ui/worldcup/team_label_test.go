@@ -11,8 +11,10 @@ func TestTeamLabel(t *testing.T) {
 	argFlag := FlagEmoji("ARG")
 	nedFlag := FlagEmoji("NED")
 	ausFlag := FlagEmoji("AUS")
-	if argFlag == "" || nedFlag == "" || ausFlag == "" {
-		t.Fatal("expected ARG/NED/AUS to have flag emojis registered")
+	korFlag := FlagEmoji("KOR")
+	rsaFlag := FlagEmoji("RSA")
+	if argFlag == "" || nedFlag == "" || ausFlag == "" || korFlag == "" || rsaFlag == "" {
+		t.Fatal("expected ARG/NED/AUS/KOR/RSA to have flag emojis registered")
 	}
 
 	tests := []struct {
@@ -59,6 +61,16 @@ func TestTeamLabel(t *testing.T) {
 			name: "short name longer than 3 chars is truncated",
 			team: api.Team{Name: "Australia", ShortName: "AUST"},
 			want: ausFlag + " AUS", // "AUST" → "AUS" → flag resolves
+		},
+		{
+			name: "ambiguous shortname without flag falls back to name override (KOR)",
+			team: api.Team{Name: "South Korea", ShortName: "SOU"},
+			want: korFlag + " KOR",
+		},
+		{
+			name: "ambiguous shortname without flag falls back to name override (RSA)",
+			team: api.Team{Name: "South Africa", ShortName: "SOU"},
+			want: rsaFlag + " RSA",
 		},
 	}
 
